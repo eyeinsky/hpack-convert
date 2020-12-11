@@ -15,7 +15,7 @@ import qualified Distribution.Compiler                 as Compiler
 import qualified Distribution.InstalledPackageInfo     as Cabal
 import qualified Distribution.Package                  as Cabal
 import qualified Distribution.PackageDescription       as Cabal
-import qualified Distribution.PackageDescription.Parse as Cabal
+import qualified Distribution.PackageDescription.Parsec as Cabal
 import qualified Distribution.Text                     as Cabal
 import qualified Distribution.Version                  as Cabal
 import           Hpack.Config                          hiding (package)
@@ -49,8 +49,7 @@ fromPackageDescription Cabal.GenericPackageDescription{..} =
                     nullNothing testedWith
             , packageFlags =
                     map (\Cabal.MkFlag{..} ->
-                             let Cabal.FlagName fn = flagName
-                             in Flag { flagName = fn
+                                Flag { flagName = unFlagName flagName
                                      , flagDescription =
                                              nullNothing flagDescription
                                      , flagManual = flagManual
@@ -69,7 +68,7 @@ fromPackageDescription Cabal.GenericPackageDescription{..} =
 -- | Reads a 'Package' from a @.cabal@ manifest string
 fromPackageDescriptionString :: String -> Either ConvertError Package
 fromPackageDescriptionString pkgStr =
-    case Cabal.parsePackageDescription pkgStr of
+    case Cabal.parseGenericPackageDescription pkgStr of
         Cabal.ParseFailed e  -> Left (ConvertCabalParseError e)
         Cabal.ParseOk _ gpkg -> Right (fromPackageDescription gpkg)
 
@@ -180,7 +179,7 @@ fromCondComponentHasBuildInfo (cond, ifTree, elseTree) =
 fromCondition :: Cabal.Condition Cabal.ConfVar -> String
 fromCondition (Cabal.Var c) = case c of
     Cabal.OS os -> "os(" ++ show (Cabal.disp os) ++ ")"
-    Cabal.Flag (Cabal.FlagName fl) -> "flag(" ++ fl ++ ")"
+    Cabal.Flag fl -> "flag(" ++ unFlagName fl ++ ")"
     Cabal.Arch ar -> "arch(" ++ show (Cabal.disp ar) ++ ")"
     Cabal.Impl cc vr -> "impl(" ++ show (Cabal.disp cc <+> Cabal.disp vr)  ++ ")"
 fromCondition (Cabal.CNot c) = "!(" ++ fromCondition c ++ ")"
